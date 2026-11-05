@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAP-1 Simulator - Claymorphism</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;800&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--font:system-ui,sans-serif;--mono:ui-monospace,Consolas,monospace;--radius:8px;--panel-border:1px solid #ccc;--panel-shadow:none;--src:#e67e00;--dst:#0a7cff;--stub:#999;--hit:rgba(255,200,0,.35);--focus:#0a7cff;--err:#c0152f;--bus-off:#333;--flow-a:#fff;--flow-b:#888}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.45}
+.app{max-width:1320px;margin:0 auto;padding:clamp(12px,2.5vw,28px)}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;margin-bottom:16px}
+.top h1{margin:0;font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.1}
+.sub{margin:0;color:var(--muted);max-width:62ch}
+.panel{position:relative;min-width:0;padding:14px;background:var(--panel-bg);border:var(--panel-border);border-radius:var(--radius);box-shadow:var(--panel-shadow)}
+.panel h2{margin:0 0 10px;font-size:1rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.panel h2 small{font-weight:400;color:var(--muted);font-size:.78rem}
+button{font:inherit;font-weight:700;cursor:pointer;padding:.55em 1.1em;color:var(--btn-ink);background:var(--btn-bg);border:var(--btn-border);border-radius:var(--btn-radius,var(--radius));box-shadow:var(--btn-shadow)}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input,select,textarea{font-family:var(--mono);font-size:.9rem;color:var(--field-ink);background:var(--field-bg);border:var(--field-border);border-radius:calc(var(--radius)/2);padding:.4em .5em}
+input[type=range]{padding:0;accent-color:var(--on)}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:16px}
+.toolbar label{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.toolbar .grow{flex:1 1 240px;min-width:0;font-weight:700}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.col{display:grid;gap:16px;min-width:0}
+.diagram{display:grid;gap:34px}
+.row{display:grid;gap:14px}
+.row.up{grid-template-columns:.8fr .8fr 1.2fr 1.2fr}
+.row.down{grid-template-columns:repeat(4,minmax(0,1fr))}
+.bits{display:flex;flex-wrap:wrap;gap:2px}
+.bit{display:inline-grid;place-items:center;min-width:1.5em;height:1.9em;font:normal .8rem var(--mono);background:var(--off);color:var(--off-ink);border:var(--bit-border,0);border-radius:var(--bit-radius,4px)}
+.bit.on{background:var(--on);color:var(--on-ink);box-shadow:var(--on-glow,none)}
+.bits .bit:nth-child(4):not(:last-child){margin-right:5px}
+.val{margin:8px 0 0;font:700 1.05rem var(--mono)}
+.aux{margin:6px 0 0;font-size:.8rem;color:var(--muted)}
+.role{margin:4px 0 0;min-height:1.2em;font-size:.78rem;color:var(--muted)}
+.reg::after{content:"";position:absolute;left:50%;width:6px;margin-left:-3px;height:34px;background:var(--stub)}
+.row.up .reg::after{top:100%}
+.row.down .reg::after{bottom:100%}
+.reg.src{outline:3px solid var(--src);outline-offset:2px}
+.reg.dst{outline:3px dashed var(--dst);outline-offset:2px}
+.reg.cnt{outline:3px dotted var(--dst);outline-offset:2px}
+.reg.src::after{background:var(--src)}
+.reg.dst::after{background:var(--dst)}
+.bus{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 14px 18px;background:var(--bus-bg);color:var(--bus-ink);border:var(--bus-border,0);border-radius:var(--bus-radius,var(--radius));box-shadow:var(--bus-shadow,none)}
+.bus .note{margin-left:auto;font:.88rem var(--mono)}
+.bus .bit{background:var(--bus-off);color:var(--bus-ink)}
+.bus .bit.on{background:var(--bus-lit);color:var(--bus-lit-ink)}
+.flow{position:absolute;left:0;right:0;bottom:0;height:6px;opacity:.25;background:repeating-linear-gradient(90deg,var(--flow-a) 0 14px,var(--flow-b) 14px 28px);background-size:28px 100%}
+.bus.active .flow{opacity:1;animation:flow .6s linear infinite}
+@keyframes flow{to{background-position:28px 0}}
+@media(prefers-reduced-motion:reduce){.bus.active .flow{animation:none}}
+.tring,.sigs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.t,.sig{font:.8rem var(--mono);padding:.15em .6em;border:1px solid var(--muted);border-radius:var(--chip-radius,6px);color:var(--muted)}
+.t.on,.sig.on{background:var(--on);color:var(--on-ink);border-color:var(--on);font-weight:700}
+.t.next{outline:2px dashed var(--muted);outline-offset:2px}
+.ledrow{display:flex;flex-wrap:wrap;gap:clamp(6px,2vw,16px)}
+.led{display:grid;justify-items:center;gap:4px;font:.78rem var(--mono)}
+.led i{width:clamp(28px,5vw,44px);aspect-ratio:1;border-radius:var(--led-radius,50%);background:var(--led-off);border:var(--led-border,0)}
+.led.on i{background:var(--led-on);box-shadow:var(--led-glow,none)}
+.log{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto;font:.82rem var(--mono)}
+.log li{padding:3px 0;border-bottom:1px solid rgba(128,128,128,.3)}
+.log b{display:inline-block;min-width:2.4em}
+.log .sg{opacity:.7}
+.log .err{color:var(--err);font-weight:700}
+.formula{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;padding:10px;border:var(--field-border);border-radius:var(--radius)}
+.formula legend{padding:0 6px;font-weight:700}
+.formula label{display:flex;align-items:center;gap:6px}
+.formula input{width:3.4em;text-align:center}
+#expect{flex-basis:100%;margin:0;font:.85rem var(--mono)}
+textarea{display:block;width:100%;min-height:210px;margin-top:6px;resize:vertical}
+.btnrow{display:flex;gap:10px;margin-top:10px}
+#msg{margin:8px 0 0;font-size:.85rem;white-space:pre-line}
+#msg.err{color:var(--err);font-weight:700}
+table{width:100%;border-collapse:collapse;font:.82rem var(--mono)}
+th,td{padding:4px 6px;text-align:left}
+th{font-weight:700;border-bottom:2px solid currentColor}
+tbody tr.hit{background:var(--hit);font-weight:700}
+.mk{margin-left:5px;padding:0 .35em;font-size:.66rem;border:1px solid currentColor;border-radius:4px}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}.row.up,.row.down{grid-template-columns:repeat(2,minmax(0,1fr))}.reg::after{display:none}.diagram{gap:14px}}
+@media(max-width:520px){.row.up,.row.down{grid-template-columns:1fr}}
+
+:root{--bg:linear-gradient(160deg,#ffe3f1,#e6dcff 45%,#d4f1ff);--ink:#3a2f5b;--muted:#665a8a;--panel-bg:#fff6fb;--panel-border:0;--panel-shadow:10px 12px 24px rgba(110,80,190,.22),inset -6px -8px 14px rgba(0,0,0,.06),inset 6px 8px 14px rgba(255,255,255,.9);--radius:30px;--btn-radius:999px;--font:"Nunito",system-ui,sans-serif;--mono:"DM Mono",ui-monospace,monospace;--on:#ff6fae;--on-ink:#4a0f2c;--off:#fff;--off-ink:#8a7fb0;--src:#ff6fae;--dst:#1fae8f;--stub:#c9bff5;--hit:rgba(255,111,174,.28);--focus:#6f58e8;--btn-bg:#6f58e8;--btn-ink:#fff;--btn-border:0;--btn-shadow:6px 8px 14px rgba(111,88,232,.35),inset -4px -5px 8px rgba(0,0,0,.18),inset 4px 5px 8px rgba(255,255,255,.35);--field-bg:#fff;--field-ink:#3a2f5b;--field-border:0;--bus-bg:#6f58e8;--bus-ink:#fff;--bus-lit:#ffe36b;--bus-lit-ink:#3a2f5b;--bus-off:rgba(255,255,255,.25);--flow-a:rgba(255,255,255,.9);--flow-b:rgba(255,255,255,.1);--bus-radius:999px;--bus-shadow:10px 12px 22px rgba(111,88,232,.35),inset -6px -8px 12px rgba(0,0,0,.2),inset 6px 8px 12px rgba(255,255,255,.3);--led-off:#fff;--led-on:radial-gradient(circle at 35% 30%,#ffeaf4,#ff6fae 65%);--led-glow:0 6px 12px rgba(255,80,150,.45),inset -4px -5px 8px rgba(0,0,0,.12);--chip-radius:999px;--bit-radius:50%}
+html{background:#e6dcff}body{background-repeat:no-repeat}
+h1,.panel h2,button{font-family:"Fredoka","Nunito",sans-serif}
+.top h1{font-weight:600;font-size:clamp(2rem,5vw,3rem)}
+.panel{padding:18px}
+[data-reg=pc]{background:#ffd9e8}[data-reg=mar]{background:#ffe8c7}[data-reg=ram]{background:#d7f5e3}[data-reg=ir]{background:#d9e6ff}
+[data-reg=a]{background:#e6d9ff}[data-reg=alu]{background:#fff3b8}[data-reg=b]{background:#ffd9d0}[data-reg=out]{background:#cdf2f0}
+.panel h2{font-weight:600;font-size:1.1rem}
+.bit{min-width:0;width:1.5em;height:1.5em;font-weight:700;box-shadow:inset 2px 3px 6px rgba(80,60,150,.22)}
+.bit.on{box-shadow:inset -3px -4px 6px rgba(0,0,0,.15),inset 3px 4px 6px rgba(255,255,255,.55),0 4px 8px rgba(255,80,150,.4)}
+.bus .bit{box-shadow:none}
+.bus{padding:16px 32px 22px}
+.reg::after{width:14px;margin-left:-7px;border-radius:8px}
+.reg.src{outline-width:4px;outline-offset:3px}.reg.dst,.reg.cnt{outline-width:4px;outline-offset:3px}
+button{font-weight:600;padding:.7em 1.5em}
+button:active:not(:disabled){transform:scale(.95);box-shadow:inset 3px 4px 8px rgba(0,0,0,.25)}
+#micro{background:#ffd36b;color:#3a2f5b}#run{background:#3fd6a6;color:#0c3d2e}#reset{background:#fff;color:#3a2f5b}
+input,select,textarea{border-radius:16px;box-shadow:inset 3px 4px 8px rgba(110,80,190,.22)}
+.formula{border-radius:22px;background:rgba(255,255,255,.5);box-shadow:inset 3px 4px 8px rgba(110,80,190,.15)}
+.t,.sig{border-color:rgba(102,90,138,.4);background:#fff}
+.t.on,.sig.on{border-color:transparent}
+.led i{box-shadow:inset 3px 4px 8px rgba(110,80,190,.25)}
+th{border-bottom-color:rgba(102,90,138,.4)}
+input[aria-invalid="true"]{outline:2px solid var(--err);outline-offset:1px}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><h1>SAP-1 Simulator</h1><p class="sub">Enter a formula, load it into RAM, then watch each clock tick of the fetch, decode and execute cycle.</p></header>
+
+<section class="panel toolbar" aria-label="Controls">
+<button id="step" title="Run one full instruction (6 clock ticks)">Step</button>
+<button id="micro" title="Advance a single T-state">T-state</button>
+<button id="run" title="Run until HLT">Run</button>
+<button id="reset" title="Clear all registers; RAM keeps the program">Reset</button>
+<label>Clock speed <input type="range" id="speed" min="1" max="10" value="6"> <span id="hz"></span></label>
+<output id="status" class="grow">Ready</output>
+</section>
+
+<div class="layout">
+<div class="col main">
+<section class="diagram" aria-label="SAP-1 block diagram">
+<div class="row up">
+<article class="panel reg" data-reg="pc"><h2>Program counter <small>4-bit</small></h2><div class="bits" id="pc-bits"></div><p class="val"><output id="pc-hex"></output></p><p class="role"></p></article>
+<article class="panel reg" data-reg="mar"><h2>Memory address register <small>4-bit</small></h2><div class="bits" id="mar-bits"></div><p class="val"><output id="mar-hex"></output></p><p class="role"></p></article>
+<article class="panel reg" data-reg="ram"><h2>RAM <small>16 x 8</small></h2><div class="bits" id="ram-bits"></div><p class="val"><output id="ram-hex"></output></p><p class="aux" id="ram-at"></p><p class="role"></p></article>
+<article class="panel reg" data-reg="ir"><h2>Instruction register <small>8-bit</small></h2><div class="bits" id="ir-bits"></div><p class="val"><output id="ir-hex"></output></p><p class="aux" id="ir-dec"></p><p class="role"></p></article>
+</div>
+<div class="bus" id="bus"><strong>W-Bus</strong><div class="bits" id="bus-bits"></div><span class="note" id="bus-note">Bus idle</span><span class="flow"></span></div>
+<div class="row down">
+<article class="panel reg" data-reg="a"><h2>Accumulator <small>A, 8-bit</small></h2><div class="bits" id="a-bits"></div><p class="val"><output id="a-hex"></output></p><p class="role"></p></article>
+<article class="panel reg" data-reg="alu"><h2>Adder / subtractor <small>2s complement</small></h2><div class="bits" id="alu-bits"></div><p class="val"><output id="alu-hex"></output></p><p class="aux" id="alu-mode"></p><p class="role"></p></article>
+<article class="panel reg" data-reg="b"><h2>B register <small>8-bit</small></h2><div class="bits" id="b-bits"></div><p class="val"><output id="b-hex"></output></p><p class="role"></p></article>
+<article class="panel reg" data-reg="out"><h2>Output register <small>8-bit</small></h2><div class="bits" id="out-bits"></div><p class="val"><output id="out-hex"></output></p><p class="role"></p></article>
+</div>
+</section>
+
+<section class="panel ctrl"><h2>Controller-sequencer <small id="phase">Waiting for the first clock tick</small></h2>
+<div class="tring" id="tring" aria-label="Ring counter"></div>
+<div class="sigs" id="sigs" aria-label="Control signals"></div></section>
+
+<section class="panel outp"><h2>Binary output display <small>output register</small></h2>
+<div class="ledrow" id="leds"></div><p class="val" id="led-read"></p></section>
+
+<section class="panel logp"><h2>Execution log</h2><ol class="log" id="log"></ol></section>
+</div>
+
+<div class="col side">
+<section class="panel program"><h2>Load program</h2>
+<fieldset class="formula"><legend>Formula (your own values)</legend>
+<label>Enter as <select id="base" aria-label="Number base for A, B and C"><option value="16" selected>Hex</option><option value="10">Decimal</option></select></label>
+<label>A <input id="va" maxlength="3" placeholder="00" autocomplete="off" spellcheck="false" aria-label="Value A"></label>
+<select id="op1" aria-label="First operator"><option value="ADD" selected>+</option><option value="SUB">-</option></select>
+<label>B <input id="vb" maxlength="3" placeholder="00" autocomplete="off" spellcheck="false" aria-label="Value B"></label>
+<select id="op2" aria-label="Second operator"><option value="ADD">+</option><option value="SUB" selected>-</option></select>
+<label>C <input id="vc" maxlength="3" placeholder="00" autocomplete="off" spellcheck="false" aria-label="Value C"></label>
+<button id="build">Build and load</button>
+<p id="expect"></p></fieldset>
+<label for="src">Program (address: instruction or hex byte)</label>
+<textarea id="src" rows="11" spellcheck="false" placeholder="0: LDA 9&#10;1: ADD A&#10;2: SUB B&#10;3: OUT&#10;4: HLT&#10;9: (your value)&#10;A: (your value)&#10;B: (your value)"></textarea>
+<div class="btnrow"><button id="load">Load into RAM</button><button id="clear">Clear RAM</button></div>
+<p id="msg" role="status"></p></section>
+
+<section class="panel ramp"><h2>RAM viewer <small>16 x 8</small></h2>
+<table><thead><tr><th>Addr</th><th>Binary</th><th>Hex</th><th>Contents</th></tr></thead><tbody id="ramrows"></tbody></table></section>
+</div>
+</div>
+</div>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const hex = (n, w = 2) => n.toString(16).toUpperCase().padStart(w, '0');
+const bin = (n, w) => n.toString(2).padStart(w, '0');
+const OP = { LDA: 0, ADD: 1, SUB: 2, OUT: 14, HLT: 15 };
+const NAME = { 0: 'LDA', 1: 'ADD', 2: 'SUB', 14: 'OUT', 15: 'HLT' };
+const SIGS = [['Cp','PC counts up'],['Ep','PC drives the bus'],['Lm','Load MAR from bus'],['CE','RAM drives the bus'],['Li','Load IR from bus'],['Ei','IR operand drives the bus'],['La','Load A from bus'],['Ea','A drives the bus'],['Su','Subtract'],['Eu','Adder/subtractor drives the bus'],['Lb','Load B from bus'],['Lo','Load output register'],['HLT','Stop the clock']];
+
+let cpu, meta = new Array(16).fill(null), last = null, timer = null, loaded = false;
+const blank = ram => ({ pc: 0, mar: 0, ir: 0, a: 0, b: 0, out: 0, t: 1, halted: false, fetched: false, ram });
+
+/* ---------- Controller-sequencer: one T-state per call ---------- */
+function tick() {
+  const c = cpu, t = c.t, op = c.ir >> 4, arg = c.ir & 15, nm = NAME[op];
+  let e;
+  if (t === 1) { c.mar = c.pc; e = { sig: ['Ep','Lm'], src: 'pc', dst: ['mar'], bus: c.pc, note: 'PC to MAR over the W-bus' }; }
+  else if (t === 2) { c.pc = (c.pc + 1) & 15; e = { sig: ['Cp'], dst: ['pc'], note: 'PC counts up' }; }
+  else if (t === 3) { c.ir = c.ram[c.mar]; c.fetched = true; e = { sig: ['CE','Li'], src: 'ram', dst: ['ir'], bus: c.ir, note: 'RAM[MAR] to IR' }; }
+  else if (!nm) { c.halted = true; e = { sig: ['HLT'], note: 'Illegal opcode ' + bin(op, 4), error: true }; }
+  else if (nm === 'HLT') { c.halted = true; e = { sig: ['HLT'], note: 'HLT: clock stopped' }; }
+  else if (nm === 'OUT') {
+    if (t === 4) { c.out = c.a; e = { sig: ['Ea','Lo'], src: 'a', dst: ['out'], bus: c.a, note: 'A to output register, shows ' + hex(c.a) + 'H' }; }
+    else e = { sig: [], note: 'No operation' };
+  } else if (t === 4) { c.mar = arg; e = { sig: ['Ei','Lm'], src: 'ir', dst: ['mar'], bus: arg, note: 'Operand ' + hex(arg, 1) + 'H to MAR' }; }
+  else if (t === 5) {
+    const v = c.ram[c.mar];
+    if (nm === 'LDA') { c.a = v; e = { sig: ['CE','La'], src: 'ram', dst: ['a'], bus: v, note: 'RAM[MAR] to A' }; }
+    else { c.b = v; e = { sig: ['CE','Lb'], src: 'ram', dst: ['b'], bus: v, note: 'RAM[MAR] to B' }; }
+  } else if (nm === 'LDA') e = { sig: [], note: 'No operation' };
+  else {
+    const s = nm === 'SUB', r = (s ? c.a - c.b : c.a + c.b) & 255;
+    c.a = r; e = { sig: s ? ['Su','Eu','La'] : ['Eu','La'], src: 'alu', dst: ['a'], bus: r, note: 'A ' + (s ? '-' : '+') + ' B to A' };
+  }
+  e.t = t; c.t = t === 6 ? 1 : t + 1; last = e; addLog(e);
+}
+
+function addLog(e) {
+  const li = document.createElement('li');
+  li.innerHTML = '<b>T' + e.t + '</b> ' + e.note + (e.sig.length ? ' <span class="sg">(' + e.sig.join(', ') + ')</span>' : '');
+  if (e.error) li.className = 'err';
+  const L = $('#log'); L.append(li);
+  while (L.children.length > 300) L.firstChild.remove();
+  L.scrollTop = L.scrollHeight;
+}
+
+/* ---------- Rendering ---------- */
+const bitsHTML = (v, n) => [...bin(v, n)].map(d => '<i class="bit' + (d === '1' ? ' on' : '') + '">' + d + '</i>').join('');
+function setReg(id, v, n, w, dec) {
+  $('#' + id + '-bits').innerHTML = bitsHTML(v, n);
+  $('#' + id + '-hex').textContent = hex(v, w) + 'H' + (dec ? ' = ' + v : '');
+}
+function meaning(i, v) {
+  if (meta[i] === 'data') return 'data (' + v + ')';
+  if (meta[i] !== 'code') return '';
+  const n = NAME[v >> 4] || '?';
+  return n + ([0, 1, 2].includes(v >> 4) ? ' ' + hex(v & 15, 1) + 'H' : '');
+}
+function render() {
+  const c = cpu, sub = c.fetched && (c.ir >> 4) === 2;
+  setReg('pc', c.pc, 4, 1); setReg('mar', c.mar, 4, 1); setReg('ir', c.ir, 8, 2);
+  setReg('a', c.a, 8, 2, true); setReg('b', c.b, 8, 2); setReg('out', c.out, 8, 2, true);
+  setReg('alu', last && last.src === 'alu' ? last.bus : (sub ? c.a - c.b : c.a + c.b) & 255, 8, 2);
+  $('#alu-mode').textContent = sub ? 'A - B, done as A + not B + 1' : 'A + B';
+  setReg('ram', c.ram[c.mar], 8, 2); $('#ram-at').textContent = 'Location ' + hex(c.mar, 1) + 'H (set by MAR)';
+  $('#ir-dec').textContent = c.fetched ? 'Opcode ' + bin(c.ir >> 4, 4) + ' (' + (NAME[c.ir >> 4] || 'unknown') + '), operand ' + bin(c.ir & 15, 4) : 'Nothing fetched yet';
+
+  const live = !!last && last.bus != null;
+  $('#bus').classList.toggle('active', live);
+  $('#bus-bits').innerHTML = live ? bitsHTML(last.bus, 8) : '<i class="bit">-</i>'.repeat(8);
+  $('#bus-note').textContent = last ? 'T' + last.t + ': ' + last.note : 'Bus idle';
+  document.querySelectorAll('.reg').forEach(el => {
+    const id = el.dataset.reg, s = live && last.src === id, d = !!last && (last.dst || []).includes(id);
+    el.classList.toggle('src', s); el.classList.toggle('dst', d && live); el.classList.toggle('cnt', d && !live);
+    el.querySelector('.role').textContent = s ? 'Driving the bus' : d ? (live ? 'Loading from the bus' : 'Counting up') : '';
+  });
+
+  document.querySelectorAll('.t').forEach((el, i) => {
+    el.classList.toggle('on', !!last && last.t === i + 1);
+    el.classList.toggle('next', !c.halted && c.t === i + 1);
+  });
+  document.querySelectorAll('.sig').forEach(el => el.classList.toggle('on', !!last && last.sig.includes(el.textContent)));
+  $('#phase').textContent = c.halted ? 'Halted' : !last ? 'Waiting for the first clock tick' : last.t <= 3 ? 'Fetch cycle' : 'Execute ' + (NAME[c.ir >> 4] || '?') + ([0, 1, 2].includes(c.ir >> 4) ? ' ' + hex(c.ir & 15, 1) + 'H' : '');
+
+  document.querySelectorAll('.led').forEach((el, i) => el.classList.toggle('on', ((c.out >> (7 - i)) & 1) === 1));
+  $('#led-read').textContent = bin(c.out >> 4, 4) + ' ' + bin(c.out & 15, 4) + '  =  ' + hex(c.out) + 'H  =  ' + c.out;
+
+  $('#ramrows').innerHTML = c.ram.map((v, i) =>
+    '<tr class="' + (i === c.mar ? 'hit' : '') + '"><td>' + hex(i, 1) + 'H' + (i === c.pc ? '<span class="mk">PC</span>' : '') + (i === c.mar ? '<span class="mk">MAR</span>' : '') +
+    '</td><td>' + bin(v >> 4, 4) + ' ' + bin(v & 15, 4) + '</td><td>' + hex(v) + 'H</td><td>' + meaning(i, v) + '</td></tr>').join('');
+
+  $('#status').textContent = !loaded ? 'No program loaded. Enter your values and press Build and load.' : c.halted ? (last && last.error ? 'Stopped: illegal opcode.' : 'Halted. Output register holds ' + hex(c.out) + 'H (' + c.out + ').')
+    : timer ? 'Running...' : 'Ready. T' + c.t + ' is next.';
+  $('#step').disabled = $('#micro').disabled = c.halted || !!timer || !loaded;
+  $('#run').disabled = c.halted || !loaded; $('#run').textContent = timer ? 'Pause' : 'Run';
+}
+
+/* ---------- Clock ---------- */
+const delay = () => 1160 - 110 * $('#speed').value;
+function go(mode) {
+  tick();
+  if (cpu.halted || (mode === 'instr' && cpu.t === 1)) timer = null;
+  else timer = setTimeout(() => go(mode), delay());
+  render();
+}
+function play(mode) { if (loaded && !cpu.halted && !timer) go(mode); }
+function stop() { clearTimeout(timer); timer = null; }
+function resetCpu() { stop(); cpu = blank(cpu.ram); last = null; $('#log').innerHTML = ''; render(); }
+
+/* ---------- Assembler ---------- */
+function parseHex(s, max) {
+  s = (s || '').trim().toUpperCase();
+  if (s.length > 1 && s.endsWith('H')) s = s.slice(0, -1);
+  if (!/^[0-9A-F]{1,2}$/.test(s)) return null;
+  const v = parseInt(s, 16);
+  return v > max ? null : v;
+}
+function assemble(text) {
+  const ram = new Array(16).fill(0), m = new Array(16).fill(null), errs = []; let at = 0;
+  text.split('\n').forEach((raw, i) => {
+    let line = raw.replace(/(;|\/\/).*$/, '').trim(); if (!line) return;
+    const n = 'Line ' + (i + 1) + ': '; let addr = at;
+    const c = line.indexOf(':');
+    if (c >= 0) {
+      addr = parseHex(line.slice(0, c), 15);
+      if (addr === null) { errs.push(n + 'the address must be 0 to F'); return; }
+      line = line.slice(c + 1).trim();
+      if (!line) { errs.push(n + 'nothing after the address'); return; }
+    }
+    if (addr > 15) { errs.push(n + 'RAM only has 16 locations (0 to F)'); return; }
+    if (m[addr] !== null) { errs.push(n + 'address ' + hex(addr, 1) + 'H is already used'); return; }
+    const [w, ...rest] = line.split(/\s+/), W = w.toUpperCase();
+    if (Object.hasOwn(OP, W)) {
+      let arg = 15;
+      if (OP[W] < 3) { arg = parseHex(rest[0], 15); if (arg === null || rest.length > 1) { errs.push(n + W + ' needs one address from 0 to F'); return; } }
+      else if (rest.length) { errs.push(n + W + ' takes no operand'); return; }
+      ram[addr] = (OP[W] << 4) | arg; m[addr] = 'code';
+    } else {
+      const v = parseHex(line, 255);
+      if (v === null) { errs.push(n + '"' + line + '" is not an instruction or a hex byte'); return; }
+      ram[addr] = v; m[addr] = 'data';
+    }
+    at = addr + 1;
+  });
+  return { ram, meta: m, errs, n: m.filter(Boolean).length };
+}
+function msg(text, bad) { const el = $('#msg'); el.textContent = text; el.classList.toggle('err', !!bad); }
+function load() {
+  const r = assemble($('#src').value);
+  if (!r.errs.length && r.n === 0) { msg('Nothing to load. Enter values and press Build and load, or type a program.', true); return false; }
+  if (r.errs.length) { msg(r.errs.join('\n'), true); return false; }
+  stop(); loaded = true; cpu = blank(r.ram); meta = r.meta; last = null; $('#log').innerHTML = '';
+  msg('Loaded ' + r.n + ' location' + (r.n === 1 ? '' : 's') + ' into RAM. Press Step or Run.'); render(); return true;
+}
+/* ---------- Formula input (all values come from the user) ---------- */
+const FIELDS = [['#va', 'A'], ['#vb', 'B'], ['#vc', 'C']];
+const baseN = () => +$('#base').value;
+function parseVal(s, base) {
+  s = (s || '').trim().toUpperCase();
+  if (base === 16) {
+    if (s.length > 1 && s.endsWith('H')) s = s.slice(0, -1);
+    return /^[0-9A-F]{1,2}$/.test(s) ? parseInt(s, 16) : null;
+  }
+  if (!/^\d{1,3}$/.test(s)) return null;
+  const v = parseInt(s, 10);
+  return v > 255 ? null : v;
+}
+function readFormula() {
+  const base = baseN(), vals = [], problems = []; let blank = 0;
+  FIELDS.forEach(([id, name]) => {
+    const el = $(id), raw = el.value.trim(), v = parseVal(raw, base);
+    vals.push(v);
+    el.setAttribute('aria-invalid', raw && v === null ? 'true' : 'false');
+    if (!raw) blank++;
+    else if (v === null) problems.push(name + ' must be ' + (base === 16 ? '1 or 2 hex digits (00 to FF)' : 'a whole number from 0 to 255'));
+  });
+  return { vals, problems, blank };
+}
+function expected(a, b, c, o1, o2) {
+  return ((o2 === 'ADD' ? 1 : -1) * c + (o1 === 'ADD' ? a + b : a - b)) & 255;
+}
+function preview() {
+  const f = readFormula(), el = $('#expect');
+  if (f.problems.length) { el.textContent = f.problems.join('. ') + '.'; return null; }
+  if (f.blank) { el.textContent = 'Enter A, B and C to see the expected result.'; return null; }
+  const [a, b, c] = f.vals, r = expected(a, b, c, $('#op1').value, $('#op2').value);
+  el.textContent = 'Expected result: ' + hex(r) + 'H = ' + r + ' (' + bin(r >> 4, 4) + ' ' + bin(r & 15, 4) + ')';
+  return f.vals;
+}
+function build() {
+  const f = readFormula(), v = preview();
+  if (!v) {
+    msg(f.problems.length ? f.problems.join('.\n') + '.' : 'Enter a value for ' + FIELDS.filter((_, i) => f.vals[i] === null).map(x => x[1]).join(', ') + ' first.', true);
+    return;
+  }
+  const [a, b, c] = v, o1 = $('#op1').value, o2 = $('#op2').value, sym = o => o === 'ADD' ? '+' : '-';
+  $('#src').value = '; ' + hex(a) + 'H ' + sym(o1) + ' ' + hex(b) + 'H ' + sym(o2) + ' ' + hex(c) + 'H\n' +
+    '0: LDA 9\n1: ' + o1 + ' A\n2: ' + o2 + ' B\n3: OUT\n4: HLT\n9: ' + hex(a) + '\nA: ' + hex(b) + '\nB: ' + hex(c) + '\n';
+  load();
+}
+
+/* ---------- Setup ---------- */
+$('#tring').innerHTML = [1, 2, 3, 4, 5, 6].map(n => '<span class="t">T' + n + '</span>').join('');
+$('#sigs').innerHTML = SIGS.map(([n, d]) => '<span class="sig" title="' + d + '">' + n + '</span>').join('');
+$('#leds').innerHTML = [7, 6, 5, 4, 3, 2, 1, 0].map(n => '<span class="led"><i></i><span>' + n + '</span></span>').join('');
+const hz = () => { $('#hz').textContent = (1000 / delay()).toFixed(1) + ' Hz'; };
+$('#speed').addEventListener('input', hz); hz();
+$('#step').addEventListener('click', () => play('instr'));
+$('#micro').addEventListener('click', () => { if (loaded && !timer && !cpu.halted) { tick(); render(); } });
+$('#run').addEventListener('click', () => { if (timer) { stop(); render(); } else play('all'); });
+$('#reset').addEventListener('click', resetCpu);
+$('#build').addEventListener('click', build);
+$('#load').addEventListener('click', load);
+$('#clear').addEventListener('click', () => { stop(); loaded = false; meta.fill(null); cpu = blank(new Array(16).fill(0)); last = null; $('#log').innerHTML = ''; msg('RAM cleared.'); render(); });
+['#va', '#vb', '#vc'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') build(); }));
+let prevBase = 16;
+$('#base').addEventListener('change', () => {
+  const to = baseN();
+  FIELDS.forEach(([id]) => { const v = parseVal($(id).value, prevBase); if (v !== null) $(id).value = to === 16 ? hex(v) : String(v); });
+  prevBase = to; $('#va').placeholder = $('#vb').placeholder = $('#vc').placeholder = to === 16 ? '00' : '0'; preview();
+});
+['#va', '#vb', '#vc', '#op1', '#op2'].forEach(s => $(s).addEventListener('input', preview));
+cpu = blank(new Array(16).fill(0));
+render(); preview();
+msg('Enter A, B and C above, then press Build and load.');
+})();
+</script>
+</body>
+</html>
