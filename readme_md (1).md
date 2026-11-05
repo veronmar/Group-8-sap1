@@ -2,20 +2,20 @@
 
 A browser-based visual simulator for the SAP-1 (Simple-As-Possible 1) computer architecture. Built with plain HTML, CSS, and JavaScript, it visually demonstrates the internal registers, 16 × 8 RAM, controller-sequencer signals, W-Bus data flow, and an 8-bit binary LED output display.
 
-How to Run
+# How to Run
 
 1. Download the file.
 2. Download live server extension in vscode.
 3. Open the file or double-click index.html to run the simulator instantly in any modern web browser.
 
-Language and Framework
+# Language and Framework
 
 Tech Stack:HTML, CSS, and JavaScript.
 Built without external frameworks to keep the project lightweight, dependency-free, easy to distribute via simple file download, and transparent for learning low-level computer architecture.
 
-Step-by-Step Testing & Execution Instructions
+# Step-by-Step Testing & Execution Instructions
 
-Scenario 1: Running the Default Formula (25H + 05H - 23H)
+Running the Default Formula (25H + 05H - 23H)
 
 1. Input Values:
    - On the right panel under, enter your custom values:
@@ -38,7 +38,7 @@ Scenario 1: Running the Default Formula (25H + 05H - 23H)
    - Watch the W-Bus animations and register updates.
    - When the program hits `HLT` (Address `4H`), the Binary output display will light up LEDs for `0000 0111` 07H.
 
-Supported Instruction Set
+# Supported Instruction Set
 
 | Instruction | Opcode (Hex) | Binary Opcode | Description |
 | :--- | :---: | :---: | :--- |
