@@ -9,6 +9,7 @@ How to Run
 3. Open the file or double-click index.html to run the simulator instantly in any modern web browser.
 
 Language and Framework
+
 Tech Stack:HTML, CSS, and JavaScript.
 Built without external frameworks to keep the project lightweight, dependency-free, easy to distribute via simple file download, and transparent for learning low-level computer architecture.
 
