@@ -1,4 +1,4 @@
-# SAP-1 Simulator - Claymorphism
+# SAP-1 Simulator
 
 A browser-based visual simulator for the SAP-1 (Simple-As-Possible 1) computer architecture. Built with plain HTML, CSS, and JavaScript, it visually demonstrates the internal registers, 16 × 8 RAM, controller-sequencer signals, W-Bus data flow, and an 8-bit binary LED output display.
 
