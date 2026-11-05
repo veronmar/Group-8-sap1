@@ -27,7 +27,7 @@ Running the Default Formula (25H + 05H - 23H)
 2. Load into RAM:
    - Click Build and load.
    - Check the RAM viewer (16 × 8) at the bottom right. will display instructions (`LDA 9`, `ADD A`, `SUB B`, `OUT`, `HLT`), and addresses `9H`, `AH`, and `BH` will store your data bytes (`25H`, `05H`, `23H`).
-   - If you change your data starting address in the instruction text (for example, changing `LDA 9` to `LDA 8`), make sure to also update the corresponding data address label in the RAM       section below (moving your data byte from `9:` to `8:`). Then click into RAM
+   - If you change your data starting address in the instruction text (for example, changing `LDA 9` to `LDA 8`), make sure to also update the corresponding data address label in the RAM       section below (moving your data byte from `9:` to `8:`). Then click Load into RAM
    - Ensure that your jump/load operand matches the exact hexadecimal memory address where your data is stored.
 
 3. Execute Simulation:
